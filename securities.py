@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import matplotlib.pyplot as plt
 import numpy as np
+import yfinance as yf
 from dateutil.relativedelta import relativedelta
 
 PERIOD_DELTAS = [
@@ -28,6 +29,15 @@ SPECIAL_SYMBOLS = {
     "^SPX": "^spx",
     "GSPC": "^spx",
     "^GSPC": "^spx",
+}
+YAHOO_SPECIAL_SYMBOLS = {
+    "S&P500": "^GSPC",
+    "S&P 500": "^GSPC",
+    "SP500": "^GSPC",
+    "SPX": "^GSPC",
+    "^SPX": "^GSPC",
+    "GSPC": "^GSPC",
+    "^GSPC": "^GSPC",
 }
 
 COLOR_POS = "#22c98e"
@@ -100,6 +110,24 @@ def fetch_price_history(symbol: str) -> list[PricePoint]:
     return history
 
 
+def normalize_symbol_yahoo(symbol: str) -> str:
+    stripped = symbol.strip()
+    if not stripped:
+        raise ValueError("Symbol must not be empty.")
+    key = stripped.upper()
+    if key in YAHOO_SPECIAL_SYMBOLS:
+        return YAHOO_SPECIAL_SYMBOLS[key]
+    return stripped
+
+
+def fetch_price_history_yahoo(symbol: str) -> list[PricePoint]:
+    resolved = normalize_symbol_yahoo(symbol)
+    df = yf.Ticker(resolved).history(period="2y")
+    if df.empty:
+        raise RuntimeError(f"No price history found for symbol {symbol!r}.")
+    return [PricePoint(day=ts.date(), close=float(row["Close"])) for ts, row in df.iterrows()]
+
+
 def build_period_returns(history: list[PricePoint]) -> tuple[list[tuple[str, float]], PricePoint]:
     latest = history[-1]
     dates = [point.day for point in history]
@@ -129,8 +157,11 @@ def format_price(price: float) -> str:
     return f"{price:,.2f}"
 
 
-def render_chart(symbol: str, output_path: str = "chart.png") -> None:
-    history = fetch_price_history(symbol)
+def render_chart(symbol: str, output_path: str = "chart.png", provider: str = "yahoo") -> None:
+    if provider == "yahoo":
+        history = fetch_price_history_yahoo(symbol)
+    else:
+        history = fetch_price_history(symbol)
     periods, latest = build_period_returns(history)
 
     values = [period[1] for period in periods]
@@ -209,10 +240,16 @@ def main() -> None:
         default="S&P 500",
         help="Ticker or label shown in the chart header. Plain tickers are treated as US symbols.",
     )
+    parser.add_argument(
+        "--provider",
+        choices=["yahoo", "stooq"],
+        default="yahoo",
+        help="Data provider (default: yahoo).",
+    )
     args = parser.parse_args()
 
     try:
-        render_chart(args.symbol)
+        render_chart(args.symbol, provider=args.provider)
     except (RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
 

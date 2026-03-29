@@ -1,4 +1,4 @@
-# AGENTS.md — tool-card-securities
+# AGENTS.md — tool-card-security
 
 ## Project overview
 
@@ -87,17 +87,17 @@ All standard-library modules (`argparse`, `csv`, `io`, `bisect`, `dataclasses`, 
 
 ```bash
 # Default: S&P 500
-securities
+tool-card-security
 
 # Specific US stock
-securities --symbol AAPL
+tool-card-security --symbol AAPL
 
 # Index with special handling
-securities --symbol "S&P500"
-securities --symbol SPX
+tool-card-security --symbol "S&P500"
+tool-card-security --symbol SPX
 
 # Non-US symbol (has a dot — passed through as-is, lowercased)
-securities --symbol BHP.AX
+tool-card-security --symbol BHP.AX
 ```
 
 Output is always written to `chart.png` in the current working directory. There is no `--output` flag in the current implementation; `render_chart` accepts an `output_path` argument but `main()` does not expose it.
