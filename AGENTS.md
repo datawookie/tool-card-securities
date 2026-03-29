@@ -1,4 +1,4 @@
-# AGENTS.md — tool-card-security
+# AGENTS.md — tool-card-securities
 
 ## Project overview
 
@@ -87,29 +87,29 @@ All standard-library modules (`argparse`, `csv`, `io`, `bisect`, `dataclasses`, 
 
 ```bash
 # Default: S&P 500, written to ./chart.png
-tool-card-security
+
 
 # Specific US stock
-tool-card-security --symbol AAPL
+tool-card-securities --symbol AAPL
 
 # Index with special handling
-tool-card-security --symbol "S&P500"
-tool-card-security --symbol SPX
+tool-card-securities --symbol "S&P500"
+tool-card-securities --symbol SPX
 
 # Non-US symbol (has a dot — passed through as-is)
-tool-card-security --symbol BHP.AX
+tool-card-securities --symbol BHP.AX
 
 # Write to a specific directory
-tool-card-security --symbol AAPL --output-dir /tmp/charts
+tool-card-securities --symbol AAPL --output-dir /tmp/charts
 
 # Custom filename
-tool-card-security --symbol AAPL --output-file aapl.png
+tool-card-securities --symbol AAPL --output-file aapl.png
 
 # Both together
-tool-card-security --symbol AAPL --output-dir /tmp/charts --output-file aapl.png
+tool-card-securities --symbol AAPL --output-dir /tmp/charts --output-file aapl.png
 
 # Alternative data provider
-tool-card-security --symbol AAPL --provider stooq
+tool-card-securities --symbol AAPL --provider stooq
 ```
 
 The output path is `{output-dir}/{output-file}`, both defaulting to `./chart.png`.

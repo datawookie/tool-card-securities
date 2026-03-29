@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-22T06:00:48.366453637Z"
+exclude-newer = "2026-03-22T17:04:44.665301416Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -548,7 +548,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tool-card-security"
+name = "tool-card-securities"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -1,4 +1,4 @@
-# tool-card-security
+# tool-card-securities
 
 ## Installation
 
