@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-securities = "securities:main"
+tool-card-security = "securities:main"
 
 [dependency-groups]
 dev = [
