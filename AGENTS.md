@@ -86,7 +86,7 @@ All standard-library modules (`argparse`, `csv`, `io`, `bisect`, `dataclasses`, 
 ## CLI usage
 
 ```bash
-# Default: S&P 500
+# Default: S&P 500, written to ./chart.png
 tool-card-security
 
 # Specific US stock
@@ -96,11 +96,23 @@ tool-card-security --symbol AAPL
 tool-card-security --symbol "S&P500"
 tool-card-security --symbol SPX
 
-# Non-US symbol (has a dot — passed through as-is, lowercased)
+# Non-US symbol (has a dot — passed through as-is)
 tool-card-security --symbol BHP.AX
+
+# Write to a specific directory
+tool-card-security --symbol AAPL --output-dir /tmp/charts
+
+# Custom filename
+tool-card-security --symbol AAPL --output-file aapl.png
+
+# Both together
+tool-card-security --symbol AAPL --output-dir /tmp/charts --output-file aapl.png
+
+# Alternative data provider
+tool-card-security --symbol AAPL --provider stooq
 ```
 
-Output is always written to `chart.png` in the current working directory. There is no `--output` flag in the current implementation; `render_chart` accepts an `output_path` argument but `main()` does not expose it.
+The output path is `{output-dir}/{output-file}`, both defaulting to `./chart.png`.
 
 ---
 

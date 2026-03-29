@@ -4,6 +4,7 @@ import io
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date, datetime
+from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -246,10 +247,22 @@ def main() -> None:
         default="yahoo",
         help="Data provider (default: yahoo).",
     )
+    parser.add_argument(
+        "--output-dir",
+        default=".",
+        help="Directory to write the chart into (default: current directory).",
+    )
+    parser.add_argument(
+        "--output-file",
+        default="chart.png",
+        help="Filename for the chart (default: chart.png).",
+    )
     args = parser.parse_args()
 
+    output_path = str(Path(args.output_dir) / args.output_file)
+
     try:
-        render_chart(args.symbol, provider=args.provider)
+        render_chart(args.symbol, output_path=output_path, provider=args.provider)
     except (RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
 
