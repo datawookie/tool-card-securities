@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -22,6 +22,23 @@ class FakeResponse:
 
     def read(self) -> bytes:
         return self.payload
+
+
+class FakeHistoryFrame:
+    def __init__(self, rows: list[tuple[object, dict[str, float]]]) -> None:
+        self._rows = rows
+        self.empty = not rows
+
+    def iterrows(self):
+        return iter(self._rows)
+
+
+class FakeTicker:
+    def __init__(self, rows: list[tuple[object, dict[str, float]]]) -> None:
+        self._rows = rows
+
+    def history(self, **kwargs) -> FakeHistoryFrame:
+        return FakeHistoryFrame(self._rows)
 
 
 def test_normalize_symbol_handles_aliases_and_tickers() -> None:
@@ -87,14 +104,115 @@ def test_build_period_returns_requires_enough_history() -> None:
         securities.build_period_returns(history)
 
 
+def test_fetch_intraday_history_yahoo_keeps_last_24_candles(monkeypatch: pytest.MonkeyPatch) -> None:
+    start = datetime(2025, 3, 1, 9, 0)
+    rows = []
+    for offset in range(30):
+        moment = start + timedelta(hours=offset)
+        rows.append(
+            (
+                moment,
+                {
+                    "Open": 100.0 + offset,
+                    "High": 101.0 + offset,
+                    "Low": 99.0 + offset,
+                    "Close": 100.5 + offset,
+                },
+            )
+        )
+
+    monkeypatch.setattr(securities.yf, "Ticker", lambda symbol: FakeTicker(rows))
+
+    candles = securities.fetch_intraday_history_yahoo("AAPL")
+
+    assert len(candles) == 24
+    assert candles[0].moment == start + timedelta(hours=6)
+    assert candles[-1].close == pytest.approx(129.5)
+
+
+def test_fetch_daily_candles_yahoo_keeps_last_24_days(monkeypatch: pytest.MonkeyPatch) -> None:
+    start = datetime(2025, 1, 1, 0, 0)
+    rows = []
+    for offset in range(30):
+        moment = start + timedelta(days=offset)
+        rows.append(
+            (
+                moment,
+                {
+                    "Open": 200.0 + offset,
+                    "High": 201.0 + offset,
+                    "Low": 199.0 + offset,
+                    "Close": 200.5 + offset,
+                },
+            )
+        )
+
+    monkeypatch.setattr(securities.yf, "Ticker", lambda symbol: FakeTicker(rows))
+
+    candles = securities.fetch_daily_candles_yahoo("AAPL")
+
+    assert len(candles) == 24
+    assert candles[0].moment == start + timedelta(days=6)
+    assert candles[-1].close == pytest.approx(229.5)
+
+
+def test_render_chart_writes_image_with_intraday_panel(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    daily_history = [
+        securities.PricePoint(day=date(2024, 3, 1), close=80.0),
+        securities.PricePoint(day=date(2024, 12, 2), close=100.0),
+        securities.PricePoint(day=date(2025, 1, 31), close=110.0),
+        securities.PricePoint(day=date(2025, 2, 24), close=115.0),
+        securities.PricePoint(day=date(2025, 2, 28), close=118.0),
+        securities.PricePoint(day=date(2025, 3, 3), close=120.0),
+    ]
+    intraday_candles = [
+        securities.CandlePoint(
+            moment=datetime(2025, 3, 3, 9, 0) + timedelta(hours=index),
+            open=100.0 + index,
+            high=101.0 + index,
+            low=99.0 + index,
+            close=100.5 + index,
+        )
+        for index in range(24)
+    ]
+    daily_candles = [
+        securities.CandlePoint(
+            moment=datetime(2025, 2, 1, 0, 0) + timedelta(days=index),
+            open=90.0 + index,
+            high=92.0 + index,
+            low=89.0 + index,
+            close=91.0 + index,
+        )
+        for index in range(24)
+    ]
+
+    monkeypatch.setattr(securities, "fetch_price_history_yahoo", lambda symbol: daily_history)
+    monkeypatch.setattr(securities, "fetch_intraday_history_yahoo", lambda symbol: intraday_candles)
+    monkeypatch.setattr(securities, "fetch_daily_candles_yahoo", lambda symbol: daily_candles)
+
+    output_path = tmp_path / "chart.png"
+
+    securities.render_chart("AAPL", output_path=str(output_path))
+
+    assert output_path.exists()
+    assert output_path.stat().st_size > 0
+
+
 def test_main_exits_with_render_error_message(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fail_render(symbol: str) -> None:
+    def fail_render(symbol: str, output_path: str = "chart.png", provider: str = "yahoo") -> None:
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
         securities.argparse.ArgumentParser,
         "parse_args",
-        lambda self: SimpleNamespace(symbol="AAPL"),
+        lambda self: SimpleNamespace(
+            symbol="AAPL",
+            provider="yahoo",
+            output_dir=".",
+            output_file="chart.png",
+        ),
     )
     monkeypatch.setattr(securities, "render_chart", fail_render)
 
